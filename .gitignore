@@ -112,3 +112,17 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+
+# custom
+.mpyproject.json
+.vscode/
+.idea/
+www/
+boot.py
+test.py
+main.py
+resources/index.html
+resources/style.css
+resources/micro-route-poster.psd
+resources/.vscode
