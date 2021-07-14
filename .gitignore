@@ -126,3 +126,13 @@ resources/index.html
 resources/style.css
 resources/micro-route-poster.psd
 resources/.vscode
+
+.vscode/
+
+*.mpy
+test.py
+main.py
+test/
+test*
+boot.py
+www/

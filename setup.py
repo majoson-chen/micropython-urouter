@@ -4,6 +4,7 @@ setup(
     name='micropython-urouter',
     version='0.1',
     packages=['urouter'],
+    requirements=['micropython-ulogger'],
     #package_dir = {'djangoforandroid': 'djangoforandroid'},
 
     author='M-Jay',
