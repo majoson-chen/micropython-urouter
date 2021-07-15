@@ -118,8 +118,7 @@ class uRouter():
         except Exception as e:
             client.close()
             logger.debug("process req failed.")
-            if config.logger_level == DEBUG:
-                raise e
+            if config.logger_level == DEBUG: raise e
 
         collect()
 
@@ -143,51 +142,56 @@ class uRouter():
                 raise e
             return
 
+        rlt = None
         try:
             # start to process the request.
             rlt = self._rlt.match(request.url, request.method)
-            if rlt:
-                # rule hited
-                _, func, kwargs = rlt
-                logger.debug("rule hited: ", func)
-                try:
-                    rlt = func(**kwargs)
+        except Exception as e:
+            if config.logger_level == DEBUG: raise e
+            logger.error("An error occurred during route matching: ", e)
+
+        if rlt:
+            # rule hited
+            _, func, kwargs = rlt
+            logger.debug("rule hited: ", func)
+            try:
+                rlt = func(**kwargs)
+
+                if not response._responsed:
+                    # 还未响应过
                     if rlt != None:
                         # 有内容
                         response.make_response(rlt)
-
                     else:
                         # 无内容
-                        if not response._responsed:
-                            # 未响应过
-                            response.abort()
-                            response.make_response("The processing function\
- did not return any data")
-                except Exception as e:
-                    # 处理错误, 500 状态码安排上
-                    logger.error("router function error happended: ", e)
-                    response.abort()
-                    if config.logger_level == DEBUG:
-                        raise e
-            else:
-                # rule note hited, try to send local file.
-                logger.debug("rule not hited, try to send local-file")
-                try:
-                    response.send_file(request.url)
-                    # 已经发送文件 | 发送404
-                except Exception as e:
-                    logger.error("failed to send local file: ", e)
-                    # 处理错误, 500 状态码安排上
-                    response.abort()
-                    if config.logger_level == DEBUG:
-                        raise e
-        except Exception as e:
-            if config.logger_level == DEBUG:
-                raise e
-            logger.error("An error occurred during route matching: ", e)
+                        response.abort()
+                        response.make_response("The processing function\
+did not return any data")
+                # else:
+                    # 响应过了, 不执行任何操作
+
+            except Exception as e:
+                # 处理错误, 500 状态码安排上
+                logger.error("router function error happended: ", e)
+                response.abort()
+                if config.logger_level == DEBUG: raise e
+        else:
+            # rule not hited, try to send local file.
+            logger.debug("rule not hited, try to send local-file")
+            try:
+                response.send_file(request.url)
+                # 已经发送文件 | 发送404
+            except Exception as e:
+                logger.error("failed to send local file: ", e)
+                # 处理错误, 500 状态码安排上
+                response.abort()
+                if config.logger_level == DEBUG:
+                    raise e
+        
 
         # After processing, flush the data-stream and close the connection.
         while True:
+            # flush
             if client.readinto(self._buf):
                 continue
             else:
@@ -195,7 +199,7 @@ class uRouter():
                 break
         response._close()
         logger.info(response.statu_code, " - ", addr, " - ", request.url)
-
+ 
     def serve_forever(self):
         """
         Auto-run the web servies, if you want to accept the request in manual by your self, use the function `accept` instead of me.
@@ -215,6 +219,7 @@ class uRouter():
             except KeyboardInterrupt:
                 break
             except Exception as e:
+                if config.logger_level == DEBUG: raise e
                 logger.debug("serve error: ", e)
 
     def serve_once(self, timeout: int = None) -> bool:
@@ -234,7 +239,13 @@ class uRouter():
         try:
             self._accept_once()
             return True
-        except:
+        except KeyboardInterrupt as e:
+            raise e
+        except OSError:
+            # TIMEOUT
+            pass
+        except Exception as e:
+            if config.logger_level == DEBUG: raise e
             return False
 
     # ↑↑↑↑↑↑↑↑↑↑↑↑

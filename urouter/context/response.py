@@ -102,7 +102,7 @@ class Response():
         """
 
         if self._header_sended:
-            raise Exception("Send http herder repeatedly.")
+            return # don not repeaty send header.
 
         # send head line.
         self._client.send(
@@ -163,8 +163,6 @@ class Response():
         elif isinstance(data, (bytes, bytearray, BytesIO)):
             self.mime_type = "application/octet-stream"
 
-        print("mime: ", self.mime_type)
-
         data = parse_data(data)
         self.headers["Content-Length"] = "%d" % len(data)
         self._send_headers()
@@ -222,34 +220,44 @@ class Response():
             path = "/%s" % path
 
         path = "%s%s" % (self.root_path, path)
+        
+        self._responsed = True
+
         try:
             file = stat(path)
-            if file[0] == 16384:  # If it is a folder, give up
-                # TODO: send default file in this floder.
-                return False
-            file_size = file[6]
-            # 没报错就是找到文件了
-            suffix = path[path.rfind('.'):]
-            # 设定文档类型
-            self.mime_type = getmtp(suffix.lower(), "application/octet-stream")
-            self.headers["Content-Length"] = "%d" % file_size
-
-            self._send_headers()
-            # 分片传输文件, 一片 1k
-            with open(path, 'rb') as file:
-                buf = bytearray(1024)
-                while file_size > 0:
-                    x = file.readinto(buf, 1024)
-                    if x < len(buf):
-                        buf = memoryview(buf)[:x]
-                    if not self._client.write(buf):
-                        raise EOFError(
-                            "An error or packet loss occurred when trying to send data to the client ")
-                    file_size -= x
-
         except:  # file not found.
             self.abort(404)
-        self._responsed = True
-        logger.debug("send local file: ", path)
+            logger.debug("local file not found: ", path)
+            return True
 
+
+        if file[0] == 16384:  # If it is a folder, give up
+            # TODO: send default file in this floder.
+            self.abort(404)
+            logger.debug("local file not found: ", path)
+            return True
+
+        file_size = file[6]
+        # 没报错就是找到文件了
+        suffix = path[path.rfind('.'):]
+        # 设定文档类型
+        self.mime_type = getmtp(suffix.lower(), "application/octet-stream")
+        self.headers["Content-Length"] = "%d" % file_size
+
+        self._send_headers()
+        # 分片传输文件
+        with open(path, 'rb') as file:
+            while file_size > 0:
+                x = file.readinto(self._buf)
+                buf = memoryview(self._buf)
+                if x == len(self._buf):
+                    buf = memoryview(self._buf)
+                else:
+                    buf = memoryview(self._buf)[:x]
+                if not self._client.write(buf):
+                    raise EOFError(
+                        "An error or packet loss occurred when trying to send data to the client ")
+                file_size -= x
+
+        logger.debug("send local file: ", path)
         return True

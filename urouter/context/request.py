@@ -60,7 +60,7 @@ class Request():
         addr: tuple(str, bytes)
     ):
         logger.debug("init request.")
-        self._client = client
+        
         line = client.readline().decode().strip()
         m = COMP_HTTP_FIRSTLINE.search(line)
         if not m:
@@ -69,6 +69,7 @@ class Request():
             client.close()
             raise EOFError("http head do not matched.")
 
+        self._client = client
         # comp http first line.
         self.host, self.port = addr
 
