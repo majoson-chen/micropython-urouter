@@ -14,7 +14,6 @@ except:
 
 from gc import collect
 from .ruleutil import RuleTree
-from .queue import Queue
 from .config import CONFIG
 from .context.session import Session
 from .context.response import Response
@@ -36,7 +35,6 @@ collect()
 class uRouter():
     # ========vars==========
     _sock: socket.socket
-    _queue: Queue
     _buf: bytearray
     _rlt: RuleTree
 
@@ -256,40 +254,6 @@ class uRouter():
         elif self._mode == DYNAMIC_MODE:
             pass
 
-    # ============
-    # DYNAMIC-MODE
-    # ↓↓↓↓↓↓↓↓↓↓↓↓
-
-    def _init_queue(self):
-        self._queue = Queue()
-
-    def _accept_to_queue(self, client: socket.socket):
-        """
-        When a new sock request comes in, this will be called.
-        """
-
-        # TODO
-        # 匹配路由后添加到队列
-
-    def check_queue(self) -> int:
-        """
-        When the cpu has free time, you can call this method to handler one request.
-        * This method is only available on `DYNAMIC-MODE`.
-        """
-        assert self._mode == NORMAL_MODE, TypeError(
-            "This method isn't work in NORMAL-MODE")
-
-        # TODO - 使用 select 检查
-
-    def handle_queue(self, amount: int):
-        """
-        Handle the requests in the queue
-        * This method is only available on `DYNAMIC-MODE`.
-
-        :param amount: int, Appoint the amount you will handle
-        """
-        assert self._mode == NORMAL_MODE, TypeError(
-            "This method isn't work in NORMAL-MODE")
 
     # =========
     #  METHODS

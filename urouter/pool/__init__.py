@@ -1,7 +1,9 @@
 import select
 import socket
 
-class Connections:
+
+
+class Pool:
     _host: socket.socket
     _pool: select.poll
 
@@ -17,7 +19,11 @@ class Connections:
         self.quantity = 0
 
         self._pool = select.poll()
-        self._pool.register(host, select.POLLIN)
+        self._pool.register(host, select.POLLIN | select.POLLERR)
+
+    def check(self):
+        """Check the new request or new connetcions, and append them into Queue.
+        """
 
     
         
