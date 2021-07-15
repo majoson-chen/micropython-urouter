@@ -31,6 +31,7 @@ request: Request = None
 # =============================
 logger = logger.get("router.main")
 
+collect()
 
 class uRouter():
     # ========vars==========
@@ -71,12 +72,12 @@ class uRouter():
         # Avoid runtime memory allocation.
 
         self._mode = mode
-        if mode == DYNAMIC_MODE:
-            self._queue = Queue()
-            self._sock.setsockopt(socket.SOL_SOCKET, 20, self._accept_to_queue)
 
         self._backlog = backlog
         self._init_sock(host, port, sock_family)
+
+        if mode == DYNAMIC_MODE:
+            self._init_queue()
 
         # 格式化路径, 使其规范, root_path 后不能带 /
         if root_path.endswith("/"):
@@ -98,8 +99,12 @@ class uRouter():
         self._sock.setsockopt(
             socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Fastely reuse-tcp
 
-        self._sock.bind(socket.getaddrinfo(
-            host, port)[0][-1])
+        try:
+            self._sock.bind(socket.getaddrinfo(
+                host, port)[0][-1])
+        except:
+            # there may raise a error on esp8266, do not know why.
+            self._sock.bind((host, port))
 
         self._sock.listen(self._backlog)
         logger.info("Server listening on %s:%s" % (host, port))
@@ -165,8 +170,8 @@ class uRouter():
                     else:
                         # 无内容
                         response.abort()
-                        response.make_response("The processing function\
-did not return any data")
+                        response.make_response(
+                            "The processing function did not return any data")
                 # else:
                     # 响应过了, 不执行任何操作
 
@@ -231,30 +236,33 @@ did not return any data")
         :type timeout: int, optional
         :return: If success, return True, failure to False
         """
-        assert self._mode != DYNAMIC_MODE, TypeError(
-            "This method isn't work in DYNAMIC-MODE")
+        
+        if self._mode == NORMAL_MODE:
 
-        self._sock.settimeout(timeout)
+            self._sock.settimeout(timeout)
 
-        try:
-            self._accept_once()
-            return True
-        except KeyboardInterrupt as e:
-            raise e
-        except OSError:
-            # TIMEOUT
+            try:
+                self._accept_once()
+                return True
+            except KeyboardInterrupt as e:
+                raise e
+            except OSError:
+                # TIMEOUT
+                pass
+            except Exception as e:
+                if config.logger_level == DEBUG: raise e
+                return False
+
+        elif self._mode == DYNAMIC_MODE:
             pass
-        except Exception as e:
-            if config.logger_level == DEBUG: raise e
-            return False
-
-    # ↑↑↑↑↑↑↑↑↑↑↑↑
-    # NORMAL-MODE
-    # ============
 
     # ============
     # DYNAMIC-MODE
     # ↓↓↓↓↓↓↓↓↓↓↓↓
+
+    def _init_queue(self):
+        self._queue = Queue()
+
     def _accept_to_queue(self, client: socket.socket):
         """
         When a new sock request comes in, this will be called.
