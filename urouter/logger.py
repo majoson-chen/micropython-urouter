@@ -9,12 +9,12 @@
 # the logger mg.
 
 import ulogger
-from .config import config
+from .config import CONFIG
 
+handler = ulogger.Handler(CONFIG.logger_level)
 
-handler = ulogger.Handler(config.logger_level)
 def get(name: str) -> ulogger.Logger:
     return ulogger.Logger(
-        name=name, 
+        name=name,
         handlers=(handler, )
     )

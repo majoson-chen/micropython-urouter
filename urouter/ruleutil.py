@@ -1,12 +1,4 @@
-try:
-    from micropython import const
-except:
-    def const(x): return x
-
-try:
-    import ure as re
-except:
-    import re
+import re
 
 from . import logger
 from . import regexutil
@@ -31,7 +23,6 @@ def make_path(paths: list) -> str:
 
     return s
 
-
 def split_url(url: str) -> list:
     """
     将字符串URL分割成一个LIST
@@ -40,7 +31,6 @@ def split_url(url: str) -> list:
     <- ['hello', 'world']
     """
     return [x for x in url.split("/") if x != ""]  # 去除数组首尾空字符串
-
 
 def parse_url(url: str) -> str:
     """
@@ -55,7 +45,6 @@ def parse_url(url: str) -> str:
         url = "/%s" % url  # 添加开头斜杠
     # if not url.endswith ("/"): url += "/" # 添加末尾斜杠
     return url
-
 
 def _translate_rule(rule: str) -> tuple:
     """
@@ -111,16 +100,14 @@ class RuleTree():
     def __init__(self):
         """Create a rule-tree"""
         self.tree = []
-        
 
     def append(
-        self, 
-        rule: str, 
-        func: callable, 
-        weight: int, 
+        self,
+        rule: str,
+        func: callable,
+        weight: int,
         methods: iter
-        ):
-
+    ):
         """Append a item to rule-tree"""
         rule, url_vars = _translate_rule(rule)
 
@@ -128,7 +115,6 @@ class RuleTree():
         task = ruletask(weight, item)
         self.tree.append(task)
         # ruleitem: "rule", "func", "weight", "methods", "url_vars"
-
 
     def match(self, url: str, method: int) -> tuple:
         """
@@ -150,7 +136,7 @@ class RuleTree():
             result = re.match(item.rule, url)
             if result:
                 # 有结果代表匹配到了
-            
+
                 # 检测是否有变量列表
                 if item.url_vars:
                     try:

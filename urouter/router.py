@@ -15,7 +15,7 @@ except:
 from gc import collect
 from .ruleutil import RuleTree
 from .queue import Queue
-from .config import config
+from .config import CONFIG
 from .context.session import Session
 from .context.response import Response
 from .context.request import Request
@@ -25,9 +25,9 @@ from . import logger
 # =============================
 # These will pass by __init__.py, Don't change them (session = xxx),
 # To update these, pleause call xxx.close(), and xxx.init()
-session: Session = None
-response: Response = None
-request: Request = None
+session: Session = Session()
+response: Response = Response()
+request: Request = Request()
 # =============================
 logger = logger.get("router.main")
 
@@ -123,7 +123,7 @@ class uRouter():
         except Exception as e:
             client.close()
             logger.debug("process req failed.")
-            if config.logger_level == DEBUG: raise e
+            if CONFIG.logger_level == DEBUG: raise e
 
         collect()
 
@@ -134,7 +134,7 @@ class uRouter():
     ):
         global request, response, session
         logger.debug("process req.")
-        client.settimeout(config.request_timeout)
+        client.settimeout(CONFIG.request_timeout)
         try:
             # create a new context, do not change the context obj's pointer,
             # just modify on them self.
@@ -143,7 +143,7 @@ class uRouter():
             session.init(request, response)
         except Exception as e:
             logger.error("faild to create new context: ", e)
-            if config.logger_level == DEBUG:
+            if CONFIG.logger_level == DEBUG:
                 raise e
             return
 
@@ -152,7 +152,7 @@ class uRouter():
             # start to process the request.
             rlt = self._rlt.match(request.url, request.method)
         except Exception as e:
-            if config.logger_level == DEBUG: raise e
+            if CONFIG.logger_level == DEBUG: raise e
             logger.error("An error occurred during route matching: ", e)
 
         if rlt:
@@ -179,7 +179,7 @@ class uRouter():
                 # 处理错误, 500 状态码安排上
                 logger.error("router function error happended: ", e)
                 response.abort()
-                if config.logger_level == DEBUG: raise e
+                if CONFIG.logger_level == DEBUG: raise e
         else:
             # rule not hited, try to send local file.
             logger.debug("rule not hited, try to send local-file")
@@ -190,7 +190,7 @@ class uRouter():
                 logger.error("failed to send local file: ", e)
                 # 处理错误, 500 状态码安排上
                 response.abort()
-                if config.logger_level == DEBUG:
+                if CONFIG.logger_level == DEBUG:
                     raise e
         
 
@@ -224,7 +224,7 @@ class uRouter():
             except KeyboardInterrupt:
                 break
             except Exception as e:
-                if config.logger_level == DEBUG: raise e
+                if CONFIG.logger_level == DEBUG: raise e
                 logger.debug("serve error: ", e)
 
     def serve_once(self, timeout: int = None) -> bool:
@@ -250,7 +250,7 @@ class uRouter():
                 # TIMEOUT
                 pass
             except Exception as e:
-                if config.logger_level == DEBUG: raise e
+                if CONFIG.logger_level == DEBUG: raise e
                 return False
 
         elif self._mode == DYNAMIC_MODE:

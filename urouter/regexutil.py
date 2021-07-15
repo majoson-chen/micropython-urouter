@@ -13,11 +13,6 @@ try:
 except:
     import re
 
-try:
-    from micropython import const
-except:
-    def const(x): return x
-
 # ==============================
 MATCH_STRING = "([^\d][^/|.]*)"
 MATCH_INT = "(\d*)"

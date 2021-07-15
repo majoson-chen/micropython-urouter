@@ -17,7 +17,7 @@ except:
     import json
 
 from ..util import dump_headers_generator
-from ..config import config
+from ..config import CONFIG
 from ..consts import STATU_CODES
 from ..mimetypes import get as getmtp
 from io import BytesIO
@@ -35,11 +35,11 @@ def parse_data(data) -> bytes:
     :type arg: [type]
     """
     if isinstance(data, str):
-        data = data.encode(config.charset)
+        data = data.encode(CONFIG.charset)
     elif isinstance(data, (bytes, bytearray)):
         pass  # Acceptable type
     elif isinstance(data, (tuple, list, dict)):
-        data = json.dumps(data).encode(config.charset)
+        data = json.dumps(data).encode(CONFIG.charset)
     elif isinstance(data, int, float):
         data = b"%s" % data
     elif isinstance(data, BytesIO):
@@ -63,7 +63,7 @@ class Response():
     mime_type: str
 
     def __init__(self):
-        self._buf = bytearray(config.buff_size)
+        self._buf = bytearray(CONFIG.buff_size)
         self.root_path = ""
 
     def init(
@@ -78,7 +78,7 @@ class Response():
         self._header_sended = False
 
         self.statu_code = 200
-        # self.mime_type = "text/html; charset=%s" % config.charset
+        # self.mime_type = "text/html; charset=%s" % CONFIG.charset
         self.mime_type = ""
         self.headers = {
             "Server": "uRouter on micropython",
@@ -89,7 +89,7 @@ class Response():
         """
         Close the response.
         """
-        # if config.keep_alive:
+        # if CONFIG.keep_alive:
         #     pass
         # #TODO
         # else:
@@ -111,7 +111,7 @@ class Response():
                 "HTTP/1.1",
                 self.statu_code,
                 STATU_CODES.get(self.statu_code)
-            )).encode(config.charset)
+            )).encode(CONFIG.charset)
         )
 
         if self.mime_type:
@@ -121,7 +121,7 @@ class Response():
 
         # send headers
         for ctn in dump_headers_generator(self.headers):
-            self._client.send(ctn.encode(config.charset))
+            self._client.send(ctn.encode(CONFIG.charset))
         # end headers
         self._client.send(b"\r\n")
         self._header_sended = True
@@ -157,9 +157,9 @@ class Response():
         """
         if isinstance(data, str):
             if data.find("<html>"):
-                self.mime_type = "text/html; charset=%s" % config.charset
+                self.mime_type = "text/html; charset=%s" % CONFIG.charset
             else:
-                self.mime_type = "text/plain; charset=%s" % config.charset
+                self.mime_type = "text/plain; charset=%s" % CONFIG.charset
         elif isinstance(data, (bytes, bytearray, BytesIO)):
             self.mime_type = "application/octet-stream"
 

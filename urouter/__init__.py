@@ -10,37 +10,11 @@
 A lightweight HTTP request routing processing support library based on micropython.  
  The previous name was [micro-route](https://github.com/Li-Lian1069/micro_route)
 """
-from . import mimetypes
-from .context.session  import Session
-from .context.response import Response
-from .context.request  import Request
-from .router   import uRouter
-from .         import consts
-from .consts   import __version__
-from .         import config
+
+from .consts   import *
+from .router   import uRouter, session, request, response
+from .config   import CONFIG
 
 
-# ======================
-request:Request = Request()
-response:Response = Response()
-session:Session = Session()
-# Due to singal-thread, donnot need to care about multithreaded variable derangement
-from . import router
-router.session = session
-router.response = response
-router.request = request
-# ======================
 
 
-__all__ = (
-    request,
-    response,
-    session,
-    
-    consts,
-    uRouter,
-    mimetypes,
-    config,
-
-    __version__,
-)

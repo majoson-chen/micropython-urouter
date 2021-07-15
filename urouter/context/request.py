@@ -7,7 +7,7 @@ try:
 except:
     import socket
 
-from ..config import config
+from ..config import CONFIG
 from ..typeutil import headeritem
 from ..regexutil import COMP_HTTP_FIRSTLINE
 
@@ -105,7 +105,7 @@ class Request():
             line = self._client.readline()
             # filter the empty line
             if line:
-                line = line.decode(config.charset).strip()
+                line = line.decode(CONFIG.charset).strip()
                 # filter the \r\n already.
                 if line:
                     # if it not None, it will be a header line.
@@ -175,11 +175,11 @@ class Request():
         # username=123456&passwd=admin
 
         # data = self._client.recv()
-        # content = data.decode(config.charset)
+        # content = data.decode(CONFIG.charset)
         # items = content.split("&")
         # try to recv all data.
         items: list = self._client.recv()\
-            .decode(config.charset)\
+            .decode(CONFIG.charset)\
             .split("&")
         collect()
 
