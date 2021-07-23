@@ -10,7 +10,8 @@ Manage connections and http requests.
 '''
 
 from gc import collect
-import socket, select
+import socket
+import select
 from ..config import CONFIG
 from ..consts import DYNAMIC_MODE, placeholder_func
 from .queue import Queue
@@ -26,6 +27,7 @@ from ..context.session import Session
 from .. import logger
 logger = logger.get("uRouter.poll")
 
+
 class Poll:
     _host: socket.socket
     _poll: select.poll
@@ -40,11 +42,10 @@ class Poll:
 
     _mode: int
     max: int
-    
+
     request: Request
     response: Response
     session: Session
-
 
     def __init__(
         self,
@@ -54,8 +55,8 @@ class Poll:
         response,
         session,
         keep_alive
-        ):
-        
+    ):
+
         self.max = CONFIG.max_connections
         # Make sure that there is always a place available
 
@@ -65,8 +66,8 @@ class Poll:
         self._host = host
         self._poll = select.poll()
         if not hasattr(self._poll, "ipoll"):
-            self._poll.ipoll = self._poll.poll # for pc debug.
-            
+            self._poll.ipoll = self._poll.poll  # for pc debug.
+
         self._poll.register(host, select.POLLIN | select.POLLERR)
         self._queue = Queue()
 
@@ -78,11 +79,22 @@ class Poll:
         self.session = session
         self._keep_alv = keep_alive
 
+    def close(self):
+        for client, _ in self._conns:
+            self._poll.unregister(client)
+            try:
+                client.close()
+            except:
+                ...
+
+        self._poll.unregister(self._host)
+
+        self._queue._heap.clear()
 
     def _find_addr(self, client: socket.socket):
         """
         Find the addr of the client in conns
-        
+
         :return: if not found, return None.
         """
         n = 0
@@ -91,17 +103,7 @@ class Poll:
             if client_ == client:
                 return addr
             n += 1
-        return None # Not found.
-
-    def close(self):
-        for client, _ in self._conns:
-            self._poll.unregister(client)
-            try: client.close()
-            except: ...
-        
-        self._poll.unregister(self._host)
-
-        self._queue._heap.clear()
+        return None  # Not found.
 
     def _append_conn(self, client, addr):
         if (client, addr) in self._conns:
@@ -113,32 +115,31 @@ class Poll:
             self._poll.register(client, select.POLLIN | select.POLLERR)
             return
 
-
     def _pop_conn(self, client: socket.socket = None):
         """
         Pop the connetion from _conns.
         * if pass nothing, it will pop the earliest conn.
         if exist, pop it , if not, just close it.
         """
-        if client:
+        if len(self._conns) == 0:
+            self._poll.unregister(client)
+        elif client:
             # pop the appointed conn.
-            for idx, (sock, addr) in enumerate(self._conns):
+            for idx, (sock, _) in enumerate(self._conns):
                 if sock == client:
                     self._conns.pop(idx)
-                    self._poll.unregister(client)
                     break
         else:
             # pop the earlist conn.
-            client, addr = self._conns.pop()
-            self._poll.unregister(client)
-        
+            client, _ = self._conns.pop()
 
-        logger.debug("close the conn: ", addr)
-        try: client.close()
-        except: ...
+        self._poll.unregister(client)
+        try:
+            client.close()
+        except:
+            ...
 
-
-    def _append_to_queue(self, client: socket.socket, addr:tuple):
+    def _append_to_queue(self, client: socket.socket, addr: tuple):
         """
         Read the http-head and try to match the handler, 
         finally append it to the queue.
@@ -159,13 +160,12 @@ class Poll:
             self._pop_conn(client)
             logger.debug("http head-line do not matched.")
             return None
-            
 
         # head matched.
         # handler = self._rlt.match(head.uri, head.method)
-        
+
         (weight, func, kwargs) = self._rlt.match(head.uri, head.method)
-        
+
         self._queue.push(
             weight, routetask(client, addr, head, func, kwargs)
         )
@@ -189,24 +189,24 @@ class Poll:
             return len(self._queue._heap)
 
         # have no wating tasks, try to accept any.
-        
+
         logger.debug("check the new requests, timeout: ", timeout)
-        
+
         clients = (
-            self._poll.poll(0) # non-block
-            if 
+            self._poll.poll(0)  # non-block
+            if
             self._mode == DYNAMIC_MODE
             else
             # self._poll.poll(timeout)
             self._poll.poll(timeout)
-            )
+        )
 
         if not clients:
             return 0
 
         client: socket.socket
         for client, event in clients:
-            if client == self._host and event == select.POLLIN: # new connect.
+            if client == self._host and event == select.POLLIN:  # new connect.
                 while len(self._conns) >= self.max:
                     # if connections fulfill
                     # pop the earliest conn
@@ -223,32 +223,30 @@ class Poll:
                     continue
                 except OSError as e:
                     if e.args == (23,):
-                        # The number of connections exceeds the system limit 
-                        self.max == len(self._conns) # reduce the max quantity.
+                        # The number of connections exceeds the system limit
+                        # reduce the max quantity.
+                        self.max == len(self._conns)
                         logger.warn(
-                            "The maximum number of connections you set exceeds the system limit. The max quantity is: ", 
+                            "The maximum number of connections you set exceeds the system limit. The max quantity is: ",
                             len(self._conns)
                         )
                         continue
                     else:
-                        logger.warn("Unknown error when accept a new connection: ", e)
+                        logger.warn(
+                            "Unknown error when accept a new connection: ", e)
                         # if CONFIG.debug: raise e  # debug
-            else: # Existing connections.
-                if event == select.POLLIN: # New request.
+            else:  # Existing connections.
+                if event == select.POLLIN:  # New request.
                     addr = self._find_addr(client)
                     # try:
-                    logger.debug("exist conn request: ", addr)
                     self._append_to_queue(client, addr)
                     continue
-                elif event == select.POLLERR: # ERR happend, close it.
+                elif event == select.POLLERR:  # ERR happend, close it.
                     self._pop_conn(client)
                     logger.warn("A socket obj error, close it.")
 
-
         collect()
         return len(self._queue._heap)
-
-
 
     def process_once(self):
         """
@@ -257,8 +255,8 @@ class Poll:
         if there is, it will process it, if not, it will return directly(non-blocking).
         """
         # task: routetask = self._queue.pop()
-        # routetask: ("weight", "client", "addr", "http_head", "func", "url_vars") 
-        
+        # routetask: ("weight", "client", "addr", "http_head", "func", "url_vars")
+
         client: socket.socket
         head: httphead
 
@@ -270,7 +268,6 @@ class Poll:
             return
         else:
             client, addr, head, func, kwargs = task
-
 
         request = self.request
         response = self.response
@@ -322,7 +319,8 @@ class Poll:
                 # 处理错误, 500 状态码安排上
                 logger.error("router function error happended: ", e)
                 response.abort()
-                if CONFIG.debug: raise e
+                if CONFIG.debug:
+                    raise e
         else:
             # rule not hited, try to send local file.
             # logger.debug("rule not hited, try to send local-file")
@@ -341,9 +339,9 @@ class Poll:
                 logger.error("failed to send local file: ", e)
                 # 处理错误, 500 状态码安排上
                 response.abort()
-                if CONFIG.debug: raise e
-        
-        
+                if CONFIG.debug:
+                    raise e
+
         if keep:
             # keep-alive
             # client.setblocking(False)
@@ -356,7 +354,3 @@ class Poll:
 
         logger.info(response.statu_code, ": ", addr, " > ", request.url)
         collect()
-
-
-    
-        

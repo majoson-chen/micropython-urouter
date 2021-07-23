@@ -1,11 +1,9 @@
 import re
 from urouter.consts import placeholder_func, empty_dict
 
-from . import logger
 from . import regexutil
 
 from .typeutil import ruleitem
-logger = logger.get("router.ruletree")
 
 def make_path(paths: list) -> str:
     """
@@ -160,9 +158,8 @@ class RuleTree():
                             idx += 1
                     except:
                         # 报错说明没了
-                        logger.debug("rule-var matched: ", kw_args)
+                        ...
 
                 return (item.weight, item.func, kw_args)
         # 没有被截胡说明没有被匹配到
-        logger.debug("rule-tree not matched.")
         return (0 , placeholder_func , empty_dict)
