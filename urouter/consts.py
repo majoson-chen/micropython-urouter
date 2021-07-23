@@ -42,3 +42,7 @@ STATU_CODES:dict = {
     503 : 'Service Unavailable', # 服务器此时无法提供服务，但将来可能可用
     505 : 'HTTP Version Not Supported' # 服务器不支持，或者拒绝支持在请求中使用的HTTP版本。这暗示着服务器不能或不愿使用与客户端相同的版本。响应中应当包含一个描述了为何版本不被支持以及服务器支持哪些协议的实体。
 }
+
+empty_dict = {}
+def placeholder_func():
+    ...

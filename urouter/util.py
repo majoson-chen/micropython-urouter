@@ -1,4 +1,4 @@
-from .config import config
+from .config import CONFIG
 from .consts import *
 
 
@@ -32,7 +32,7 @@ def load_form_data(data: str):
     }
     """
     if type(data) == bytes:
-        data = data.decode(config.charset)
+        data = data.decode(CONFIG.charset)
 
     obj = {}
     data: list = data.split("&")
@@ -46,6 +46,7 @@ def load_form_data(data: str):
             obj[line[:idx]] = line[idx+1:]
     return obj
 
+
 def dump_headers_generator(headers: dict):
     """
     Create a generator from headers.
@@ -54,10 +55,8 @@ def dump_headers_generator(headers: dict):
     for k, v in headers.items():
         if isinstance(v, (tuple, list)):
             # transform the tuple to str.
-            yield "%s%s%s%s" % (k, ": " , '; '.join(v), "\r\n")
+            yield "%s%s%s%s" % (k, ": ", '; '.join(v), "\r\n")
         else:
             yield "%s%s%s%s" % (k, ": ", v, "\r\n")
 
     return
-
-
