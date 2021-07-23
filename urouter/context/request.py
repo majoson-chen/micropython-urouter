@@ -8,7 +8,7 @@ except:
     import socket
 
 from ..config import CONFIG
-from ..typeutil import headeritem
+from ..typeutil import headeritem, httphead
 from ..regexutil import COMP_HTTP_FIRSTLINE
 
 from gc import collect
@@ -57,18 +57,9 @@ class Request():
     def init(
         self,
         client: socket.socket,
-        addr: tuple(str, bytes)
+        addr: tuple(str, bytes),
+        head: httphead
     ):
-        logger.debug("init request.")
-        
-        line = client.readline().decode().strip()
-        m = COMP_HTTP_FIRSTLINE.search(line)
-        if not m:
-            # 不匹配, 直接跳过
-            logger.debug("http do not match. skip it.")
-            client.close()
-            raise EOFError("http head do not matched.")
-
         self._client = client
         # comp http first line.
         self.host, self.port = addr
@@ -76,12 +67,10 @@ class Request():
         self._form = {}
         self._form_loaded = False
 
-        self.method = m.group(1)
-        self.uri = m.group(2)
-        self.http_version = m.group(3)
+        self.method, self.uri, self.http_version = head
+
         self._hdgen = self._header_generate()
         self._headers = Header(self._hdgen)
-
         self.args = {}
         # Parsing uri to url
         if "?" in self.uri:
@@ -91,9 +80,6 @@ class Request():
             self.url = self.uri[:pst]
         else:
             self.url = self.uri
-
-        logger.debug("url: ", self.url)
-        logger.debug("args: ", self.args)
 
     def _header_generate(self) -> str:
         """

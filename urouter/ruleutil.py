@@ -1,9 +1,10 @@
 import re
+from urouter.consts import placeholder_func, empty_dict
 
 from . import logger
 from . import regexutil
 
-from .typeutil import ruleitem, ruletask
+from .typeutil import ruleitem
 logger = logger.get("router.ruletree")
 
 def make_path(paths: list) -> str:
@@ -111,29 +112,28 @@ class RuleTree():
         """Append a item to rule-tree"""
         rule, url_vars = _translate_rule(rule)
 
-        item = ruleitem(rule, func, methods, url_vars)
-        task = ruletask(weight, item)
-        self.tree.append(task)
+        
+        item = ruleitem(weight, re.compile(rule), func, methods, url_vars)
+        self.tree.append(item)
         # ruleitem: "rule", "func", "weight", "methods", "url_vars"
 
     def match(self, url: str, method: int) -> tuple:
         """
         Search for the relevant rule.
-        if hit, will return a tuple (weight, func, {vars: value})
+        if hit, will return a tuple: (weight, func, {vars: value})
         if not, return None
         """
         result = None
         kw_args = {}
-        task: ruletask
         item: ruleitem
-        for task in self.tree:
-            item = task.task
+        for item in self.tree:
 
             if method not in item.methods:
                 # 访问方式不匹配,跳过
                 continue
+            
 
-            result = re.match(item.rule, url)
+            result = item.comper.match(url)
             if result:
                 # 有结果代表匹配到了
 
@@ -163,7 +163,7 @@ class RuleTree():
                         # 报错说明没了
                         logger.debug("rule-var matched: ", kw_args)
 
-                return (task.weight, item.func, kw_args)
+                return (item.weight, item.func, kw_args)
         # 没有被截胡说明没有被匹配到
         logger.debug("rule-tree not matched.")
-        return None
+        return (0 , placeholder_func , empty_dict)

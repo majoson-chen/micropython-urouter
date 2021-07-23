@@ -14,15 +14,21 @@ except:
     import collections
 
 ruleitem = collections.namedtuple(
-    "ruleitem",
-    ("rule", "func", "methods", "url_vars")
+    "rule-item",
+    ("weight", "comper", "func", "methods", "url_vars")
 )
-ruletask = collections.namedtuple(
-    "ruletask",
-    ("weight", "task")
+
+routetask = collections.namedtuple(
+    "route-task",
+    ("client", "addr", "http_head", "func", "url_vars")
+)
+
+httphead = collections.namedtuple(
+    "http-head",
+    ("method", "uri", "version")
 )
 
 headeritem = collections.namedtuple(
-    "header_item",
+    "header-item",
     ("key", "value")
 )

@@ -1,23 +1,24 @@
 from ulogger import INFO
-from . import logger
 
 class _CONFIG:
     def __init__(self):
         self.charset = 'utf-8'
         self._buff_size = 1024
         self._logger_level = INFO
-        self.request_timeout = 10
+        self.request_timeout = 7
         self.max_connections = 5
+        self.debug = True
     
-    @property
-    def buff_size(self):
-        return self._buff_size
-    
-    @buff_size.setter
-    def buff_size(self, value):
-        from .router import response
-        self._buff_size = value
-        response._buf = bytearray(value)
+
+    def buff_size(self, app, value: int = None):
+        """
+        Set or get the buffer size of the response, the larger the value, the faster the processing speed.
+        """
+        if value:
+            # set
+            app.response._buf = bytearray(value)
+        else:
+            return len(app.response._buf)
 
     # =====================================
 
@@ -27,8 +28,9 @@ class _CONFIG:
 
     @logger_level.setter
     def logger_level(self, level):
+        from .logger import handler
         self.set_logger_level = level
-        logger.handler.level = level
+        handler.level = level
 
 
 

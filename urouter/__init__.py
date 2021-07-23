@@ -12,7 +12,7 @@ A lightweight HTTP request routing processing support library based on micropyth
 """
 
 from .consts   import *
-from .router   import uRouter, session, request, response
+from .router   import uRouter
 from .config   import CONFIG
 
 

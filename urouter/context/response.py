@@ -63,14 +63,14 @@ class Response():
     mime_type: str
 
     def __init__(self):
-        self._buf = bytearray(CONFIG.buff_size)
+        self._buf = bytearray(1024)
         self.root_path = ""
 
     def init(
         self,
         client: socket.socket,
     ):
-        logger.debug("init response")
+        # logger.debug("init response")
 
         self._client = client
         self._stream_mode = False
@@ -82,18 +82,25 @@ class Response():
         self.mime_type = ""
         self.headers = {
             "Server": "uRouter on micropython",
-            "Connection": "close"
         }
 
-    def _close(self):
+    def _flush(self):
         """
-        Close the response.
+        Flush the data.
         """
-        # if CONFIG.keep_alive:
-        #     pass
-        # #TODO
-        # else:
-        self._client.close()
+        while True:
+            # flush
+            self._client.settimeout(0)
+            try:
+                if self._client.readinto(self._buf):
+                    continue
+                else:
+                    # read-len == 0, flush over.
+                    break
+            except OSError:
+                # have no data
+                break
+
 
     def _send_headers(self):
         """
@@ -125,7 +132,7 @@ class Response():
         # end headers
         self._client.send(b"\r\n")
         self._header_sended = True
-        logger.debug("header sended: ", self.headers)
+        # logger.debug("header sended: ", self.headers)
         # content start.
 
     def abort(
@@ -169,7 +176,7 @@ class Response():
         self._client.send(data)
         self._responsed = True
 
-        logger.debug("make response: ", data)
+        # logger.debug("make response: ", data)
         return True
 
     def make_stream(self):
@@ -182,7 +189,7 @@ class Response():
         self._stream_mode = True
         self._send_headers()
 
-        logger.debug("make stream.")
+        # logger.debug("make stream.")
 
     def finish_stream(self):
         """
@@ -190,7 +197,7 @@ class Response():
         """
         self._client.send(b"0\r\n\r\n")
         # self._close()
-        logger.debug("finish stream.")
+        # logger.debug("finish stream.")
 
         return True
 
@@ -205,7 +212,7 @@ class Response():
         self._client.send(b"%x\r\n" % len(data))
         self._client.send(data)
 
-        logger.debug("send stream data: ", data)
+        # logger.debug("send stream data: ", data)
         return self._client.send("\r\n")
 
     def send_file(self, path: str) -> bool:
@@ -227,14 +234,14 @@ class Response():
             file = stat(path)
         except:  # file not found.
             self.abort(404)
-            logger.debug("local file not found: ", path)
+            # logger.debug("local file not found: ", path)
             return True
 
 
         if file[0] == 16384:  # If it is a folder, give up
             # TODO: send default file in this floder.
             self.abort(404)
-            logger.debug("local file not found: ", path)
+            # logger.debug("local file not found: ", path)
             return True
 
         file_size = file[6]
@@ -247,17 +254,22 @@ class Response():
         self._send_headers()
         # 分片传输文件
         with open(path, 'rb') as file:
-            while file_size > 0:
-                x = file.readinto(self._buf)
-                buf = memoryview(self._buf)
-                if x == len(self._buf):
-                    buf = memoryview(self._buf)
-                else:
-                    buf = memoryview(self._buf)[:x]
-                if not self._client.write(buf):
-                    raise EOFError(
-                        "An error or packet loss occurred when trying to send data to the client ")
-                file_size -= x
+            try:
+                while file_size > 0:
+                    x = file.readinto(self._buf)
+                    if not self._client.write((
+                        self._buf 
+                        if 
+                        x == len(self._buf) 
+                        else 
+                        memoryview(self._buf)[:x]
+                    )) == x:
+                        logger.warn("The size of the sent data does not match: ", path)
+                        return False
+                    file_size -= x
+            except Exception as e:
+                # logger.warn("Faild to send local file: ", e)
+                return False
 
         logger.debug("send local file: ", path)
         return True
