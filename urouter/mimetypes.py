@@ -1,11 +1,5 @@
-try:
-    from micropython import const
-except:
-    def const(x): return x
-
-
 # TODO: local-file database
-MAP: dict = const({
+MAP: dict = {
     ".txt": "text/plain",
     ".htm": "text/html",
     ".html": "text/html",
@@ -29,7 +23,7 @@ MAP: dict = const({
     ".svg": "image/svg+xml",
     ".ico": "image/x-icon"
     # others : "application/octet-stream"
-})
+}
 
 
 def get(suf: str, default: str = "application/octet-stream") -> str:

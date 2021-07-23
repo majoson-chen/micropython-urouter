@@ -5,13 +5,11 @@
 @Time    :   2021/07/10 17:36:31
 @Author  :   M-Jay
 @Contact :   m-jay-1376@qq.com
-'''
-# some custom type here.
 
-try:
-    import ucollections as collections
-except:
-    import collections
+some custom type here.
+'''
+
+import collections
 
 ruleitem = collections.namedtuple(
     "rule-item",

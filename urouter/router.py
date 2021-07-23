@@ -5,16 +5,14 @@
 @Time    :   2021/07/10 17:35:51
 @Author  :   M-Jay
 @Contact :   m-jay-1376@qq.com
+
+The entry for this framework.
 '''
 
-try:
-    import usocket as socket
-except:
-    import socket
+import socket
 
 from gc import collect
 from .config import CONFIG
-
 
 from .context.session import Session
 from .context.response import Response
@@ -31,10 +29,11 @@ from .pool import Poll
 logger = logger.get("router.main")
 collect()
 
+
 class uRouter():
     # ========vars==========
     _sock: socket.socket
-    # _buf: bytearray
+    _stop: bool
     _poll: Poll
 
     _mode: int
@@ -46,7 +45,7 @@ class uRouter():
         port: str = "80",
         root_path: str = "/www",
         mode: int = NORMAL_MODE,
-        keep_alive = False,
+        keep_alive=False,
         backlog: int = 5,
         sock_family: int = socket.AF_INET,
     ):
@@ -61,18 +60,19 @@ class uRouter():
         :param sock_family: Appoint a sock-family to bind, such as ipv4(socket.AF_INET) or ipv6(socket.AF_INET6). micropython seems that have no ipv6 support, but i provide this param to use in future. defaults to ipv4(AF_INET)
         :type sock_family: Socket.CONSTS, optional
         """
-        self.session: Session = Session()
-        self.response: Response = Response()
-        self.request: Request = Request()
+        self._stop = False
+        self._session = Session()
+        self._response = Response()
+        self._request = Request()
 
         self._mode = mode
 
         self._init_sock(host, port, sock_family, backlog)
         self._poll = Poll(
-            mode, 
-            self._sock, 
-            self.request, 
-            self.response, 
+            mode,
+            self._sock,
+            self.request,
+            self.response,
             self.session,
             keep_alive
         )
@@ -82,6 +82,30 @@ class uRouter():
             root_path = root_path[:-1]  # 过滤掉 /
         self._root_path = root_path
         self.response.root_path = root_path
+
+    @property
+    def request(self):
+        return self._request
+
+    @request.setter
+    def request(self, arg):
+        raise EOFError("Do not change the request obj.")
+
+    @property
+    def response(self):
+        return self._response
+
+    @response.setter
+    def response(self, arg):
+        raise EOFError("Do not change the response obj.")
+
+    @property
+    def session(self):
+        return self._session
+
+    @session.setter
+    def session(self, arg):
+        raise EOFError("Do not change the session obj.")
 
     def _init_sock(
         self,
@@ -125,15 +149,15 @@ class uRouter():
         while self._sock:  # loop until stop. when stop, _sock will be None
             try:
                 self.serve_once()
+                if self._stop:
+                    logger.info("Stop serving.")
+                    return
             except KeyboardInterrupt:
                 break
             except Exception as e:
-                logger.debug("serve error: ", e)
-                if CONFIG.debug: 
+                logger.critical("serve error: ", e)
+                if CONFIG.debug:
                     raise e
-                    break
-                
-                
 
     def serve_once(self, timeout: int = -1) -> bool:
         """
@@ -144,14 +168,36 @@ class uRouter():
         :type timeout: int, optional
         :return: If success, return True, failure to False
         """
+        try:
+            self._poll.check(timeout)
+            self._poll.process_once()
+        except Exception as e:
+            logger.critical("Serve critical: ", e)
+            if CONFIG.debug: raise e
 
-        self._poll.check(timeout)
-        self._poll.process_once()
+    def check(self, timeout: int = -1):
+        """
+        Check the new request or new connetcions, and append them into Queue.
 
-
+        :param timeout: int, The timeout(ms), if this time is exceeded, we will return. Set a negative number to wait forever, defaults to -1
+        :return: the quantity of waiting tasks.
+        """
+        try:
+            return self._poll.check(timeout)
+        except Exception as e:
+            logger.critical("Check critical: ", e)
+            if CONFIG.debug: raise e
+            return 0
     # =========
     #  METHODS
     # ↓↓↓↓↓↓↓↓↓
+
+    def stop(self):
+        """
+        When you call `serve_forever`, you can use this method to stop the server when the last request was handler out.
+        """
+        self._stop = True
+
     def close(self):
         """
         Stop the server. If you had been called the func `serve_forever`, it will be return at the last affiar was done.
@@ -160,9 +206,7 @@ class uRouter():
 
         self._sock.close()
         self._sock = None
-
-
-
+        # del self
 
     def route(
         self,
@@ -191,7 +235,6 @@ class uRouter():
             return func
         return decorater
 
-
     def websocket(self):
-        assert False, NotImplementedError("This is developping") 
+        assert False, NotImplementedError("This is developping")
         # TODO

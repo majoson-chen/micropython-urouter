@@ -1,5 +1,17 @@
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+'''
+@File    :   __init__.py
+@Time    :   2021/07/23 16:21:55
+@Author  :   M-Jay
+@Contact :   m-jay-1376@qq.com
+
+Manage connections and http requests.
+'''
+
+from gc import collect
 import socket, select
-from urouter.config import CONFIG
+from ..config import CONFIG
 from ..consts import DYNAMIC_MODE, placeholder_func
 from .queue import Queue
 from ..ruleutil import RuleTree
@@ -96,7 +108,7 @@ class Poll:
             # exist already.
             return
         else:
-            client.setblocking(False)
+            client.settimeout(CONFIG.request_timeout)
             self._conns.insert(0, (client, addr))
             self._poll.register(client, select.POLLIN | select.POLLERR)
             return
@@ -109,14 +121,17 @@ class Poll:
         if exist, pop it , if not, just close it.
         """
         if client:
-            for idx, (sock, addr) in self._conns:
+            # pop the appointed conn.
+            for idx, (sock, addr) in enumerate(self._conns):
                 if sock == client:
                     self._conns.pop(idx)
                     self._poll.unregister(client)
                     break
         else:
+            # pop the earlist conn.
             client, addr = self._conns.pop()
             self._poll.unregister(client)
+        
 
         logger.debug("close the conn: ", addr)
         try: client.close()
@@ -133,7 +148,7 @@ class Poll:
         client.settimeout(CONFIG.request_timeout)
         try:
             line = client.readline().decode().strip()
-        except OSError:
+        except OSError as e:
             # timeout
             logger.debug("Http head read timeout.")
             self._pop_conn(client)
@@ -156,7 +171,7 @@ class Poll:
         )
         # ("weight", "client", "addr", "http_head", "func", "url_vars")
 
-    def check(self, timeout: int = -1) -> tuple:
+    def check(self, timeout: int) -> int:
         """
         Check the new request or new connetcions, and append them into Queue.
 
@@ -171,12 +186,11 @@ class Poll:
             # task waiting
             # return len(self._queue._heap)
             logger.debug("task exist, skip check.")
-            return
-
+            return len(self._queue._heap)
 
         # have no wating tasks, try to accept any.
         
-        logger.debug("check the new requests.")
+        logger.debug("check the new requests, timeout: ", timeout)
         
         clients = (
             self._poll.poll(0) # non-block
@@ -187,6 +201,8 @@ class Poll:
             self._poll.poll(timeout)
             )
 
+        if not clients:
+            return 0
 
         client: socket.socket
         for client, event in clients:
@@ -228,6 +244,8 @@ class Poll:
                     self._pop_conn(client)
                     logger.warn("A socket obj error, close it.")
 
+
+        collect()
         return len(self._queue._heap)
 
 
@@ -258,8 +276,6 @@ class Poll:
         response = self.response
         session = self.session
 
-        # client.settimeout(CONFIG.request_timeout)
-
         request.init(client, addr, head)
         response.init(client)
         session.init(request, response)
@@ -275,28 +291,33 @@ class Poll:
             keep = False
             response.headers["Connection"] = "close"
 
-        # if func:
-        #     # have custom handler
-        # else:
-        #     # have no custom handler
         if func != placeholder_func:
             # rule hited
             # logger.debug("rule hited: ", func)
             try:
                 rlt = func(**kwargs)
+                # After processing, flush the data-stream and close the connection.
                 response._flush()
-                if not response._responsed:
+
+                if response._stream_mode:
+                    if not response._stream_finish:
+                        response.finish_stream()
+                elif not response._responsed:
                     # 还未响应过
                     if rlt != None:
                         # 有内容
                         response.make_response(rlt)
                     else:
                         # 无内容
-                        response.abort()
+                        response.statu_code = 500
                         response.make_response(
                             "The processing function did not return any data")
-                # else:
-                    # 响应过了, 不执行任何操作
+            except OSError:
+                # Timeout
+                # skip this request
+                logger.debug("process timeout: ", request.url)
+                self._pop_conn(client)
+                return
             except Exception as e:
                 # 处理错误, 500 状态码安排上
                 logger.error("router function error happended: ", e)
@@ -306,9 +327,16 @@ class Poll:
             # rule not hited, try to send local file.
             # logger.debug("rule not hited, try to send local-file")
             try:
+                # After processing, flush the data-stream and close the connection.
                 response._flush()
                 response.send_file(request.url)
                 # 已经发送文件 | 发送 404
+            except OSError:
+                # Timeout
+                # skip this request
+                logger.debug("process timeout: ", request.url)
+                self._pop_conn(client)
+                return
             except Exception as e:
                 logger.error("failed to send local file: ", e)
                 # 处理错误, 500 状态码安排上
@@ -318,16 +346,16 @@ class Poll:
         
         if keep:
             # keep-alive
-            # After processing, flush the data-stream and close the connection.
-            logger.debug("Responsed, keep alive.")
-            client.setblocking(False)
+            # client.setblocking(False)
             self._append_conn(client, addr)
+            # logger.debug("Responsed, keep alive.")
         else:
             # close
             self._pop_conn(client)
-            logger.debug("Responsed, close it.")
+            # logger.debug("Responsed, close it.")
 
         logger.info(response.statu_code, ": ", addr, " > ", request.url)
+        collect()
 
 
     

@@ -5,18 +5,13 @@
 @Time    :   2021/07/10 23:40:35
 @Author  :   M-Jay
 @Contact :   m-jay-1376@qq.com
+
+Used to respond to HTTP requests.
 '''
-try:
-    import usocket as socket
-except:
-    import socket
+import socket
+import json
 
-try:
-    import ujson as json
-except:
-    import json
-
-from ..util import dump_headers_generator
+from ..util import dump_headers_generator, is_html
 from ..config import CONFIG
 from ..consts import STATU_CODES
 from ..mimetypes import get as getmtp
@@ -25,30 +20,6 @@ from os import stat
 
 from .. import logger
 logger = logger.get("uRouter.response")
-
-
-def parse_data(data) -> bytes:
-    """pass in a str, bytes, bytearray , number, BytesIO obj.
-    return a buffer to send data.
-
-    :param arg: [description]
-    :type arg: [type]
-    """
-    if isinstance(data, str):
-        data = data.encode(CONFIG.charset)
-    elif isinstance(data, (bytes, bytearray)):
-        pass  # Acceptable type
-    elif isinstance(data, (tuple, list, dict)):
-        data = json.dumps(data).encode(CONFIG.charset)
-    elif isinstance(data, int, float):
-        data = b"%s" % data
-    elif isinstance(data, BytesIO):
-        data: BytesIO
-        data = data.getvalue()  # Avoid additional memory allocation.
-    else:
-        raise TypeError("Unknown response type.")
-
-    return data
 
 
 class Response():
@@ -79,18 +50,31 @@ class Response():
 
         self.statu_code = 200
         # self.mime_type = "text/html; charset=%s" % CONFIG.charset
-        self.mime_type = ""
+        self._mime_type = ""
         self.headers = {
             "Server": "uRouter on micropython",
         }
+
+    @property
+    def mime_type(self):
+        return self._mime_type
+
+    @mime_type.setter
+    def mime_type(self, value: str):
+        # mime_type can only be set once
+        if self._mime_type:
+            # set already.
+            return
+        else:
+            self._mime_type = value
 
     def _flush(self):
         """
         Flush the data.
         """
+        self._client.settimeout(0)
         while True:
             # flush
-            self._client.settimeout(0)
             try:
                 if self._client.readinto(self._buf):
                     continue
@@ -100,6 +84,8 @@ class Response():
             except OSError:
                 # have no data
                 break
+
+        self._client.settimeout(CONFIG.request_timeout)
 
 
     def _send_headers(self):
@@ -127,9 +113,10 @@ class Response():
             self.headers["Content-Type"] = "application/octet-stream"
 
         # send headers
-        for ctn in dump_headers_generator(self.headers):
-            self._client.send(ctn.encode(CONFIG.charset))
+        for header_line in dump_headers_generator(self.headers):
+            self._client.send(header_line.encode(CONFIG.charset))
         # end headers
+
         self._client.send(b"\r\n")
         self._header_sended = True
         # logger.debug("header sended: ", self.headers)
@@ -139,6 +126,7 @@ class Response():
         self,
         statu_code: str = 500,
     ):
+        self.mime_type = "text/html"
         self.statu_code = statu_code
         self._send_headers()
 
@@ -150,6 +138,7 @@ class Response():
         """
         Redirect the request.
         """
+        assert not self._responsed, "Do not send response repeatily."
 
         self.headers["Location"] = location
         self.statu_code = statu_code
@@ -162,17 +151,13 @@ class Response():
         * If your data length is specific, use it to make a response.
         * If not, please use stream-mode.
         """
-        if isinstance(data, str):
-            if data.find("<html>"):
-                self.mime_type = "text/html; charset=%s" % CONFIG.charset
-            else:
-                self.mime_type = "text/plain; charset=%s" % CONFIG.charset
-        elif isinstance(data, (bytes, bytearray, BytesIO)):
-            self.mime_type = "application/octet-stream"
+        assert not self._responsed, "Do not send response repeatily."
 
-        data = parse_data(data)
+        data = self.parse_data(data)
         self.headers["Content-Length"] = "%d" % len(data)
         self._send_headers()
+
+
         self._client.send(data)
         self._responsed = True
 
@@ -184,10 +169,13 @@ class Response():
         use stream-mode to send data.
         it can send the uncertain size data.
         """
+        assert not self._responsed, "Do not send response repeatily."
 
         self.headers["Transfer-Encoding"] = "chunked"
         self._stream_mode = True
+        self._stream_finish = False
         self._send_headers()
+        self._responsed = True
 
         # logger.debug("make stream.")
 
@@ -198,8 +186,8 @@ class Response():
         self._client.send(b"0\r\n\r\n")
         # self._close()
         # logger.debug("finish stream.")
+        self._stream_finish = True
 
-        return True
 
     def send_data(self, data: bytes) -> int:
         """
@@ -207,7 +195,7 @@ class Response():
         """
         assert self._stream_mode, "This method just suit for stream-mode."
 
-        data = parse_data(data)
+        data = self.parse_data(data)
 
         self._client.send(b"%x\r\n" % len(data))
         self._client.send(data)
@@ -219,7 +207,7 @@ class Response():
         """
         Send the local file which in root_path.
         if file not-found in root-path, it will send 404 statu automaticly
-        if send failed, it will raise a `EOFError`
+        if send failed, it will return False
 
         :param path: the file name(reletive path suggested)
         """
@@ -249,7 +237,7 @@ class Response():
         suffix = path[path.rfind('.'):]
         # 设定文档类型
         self.mime_type = getmtp(suffix.lower(), "application/octet-stream")
-        self.headers["Content-Length"] = "%d" % file_size
+        self.headers["Content-Length"] = "%s" % file_size
 
         self._send_headers()
         # 分片传输文件
@@ -258,7 +246,7 @@ class Response():
                 while file_size > 0:
                     x = file.readinto(self._buf)
                     if not self._client.write((
-                        self._buf 
+                        self._buf
                         if 
                         x == len(self._buf) 
                         else 
@@ -267,9 +255,54 @@ class Response():
                         logger.warn("The size of the sent data does not match: ", path)
                         return False
                     file_size -= x
+            except OSError:
+                # timeout
+                logger.debug("Send local file timeout.")
             except Exception as e:
-                # logger.warn("Faild to send local file: ", e)
+                logger.debug("Faild to send local file: ", e)
                 return False
 
         logger.debug("send local file: ", path)
         return True
+
+    def parse_data(self, data) -> bytes:
+        """
+        pass in a str, bytes, bytearray , number, BytesIO obj.
+        return a buffer to send data.
+
+        :param arg: [description]
+        :type arg: [type]
+        """
+
+
+        # if isinstance(data, str):
+        #     if data.find("<html>"):
+        #         self.mime_type = "text/html; charset=%s" % CONFIG.charset
+        #     else:
+        #         self.mime_type = "text/plain; charset=%s" % CONFIG.charset
+        # elif isinstance(data, (bytes, bytearray, BytesIO)):
+        #     self.mime_type = "application/octet-stream"
+
+        if isinstance(data, str):
+            self.mime_type = (
+                "text/html; charset=%s" % CONFIG.charset
+                if is_html(data)
+                else "text/plain; charset=%s" % CONFIG.charset
+                )
+            data = data.encode(CONFIG.charset)
+        elif isinstance(data, (bytes, bytearray)):
+            pass  # Acceptable type
+        elif isinstance(data, (tuple, list, dict)):
+            self.mime_type = "application/json"
+            data = json.dumps(data).encode(CONFIG.charset)
+        elif isinstance(data, int, float):
+            self.mime_type = "text/plain"
+            data = b"%s" % data
+        elif isinstance(data, BytesIO):
+            data: BytesIO
+            self.mime_type = "application/octet-stream"
+            data = memoryview(data.getvalue())  # Avoid additional memory allocation.
+        else:
+            raise TypeError("Unknown response type.")
+
+        return data

@@ -94,7 +94,6 @@ def _translate_rule(rule: str) -> tuple:
 
     return (rule, tuple(url_vars))
 
-
 class RuleTree():
     tree: list  # [ruletasks]
 

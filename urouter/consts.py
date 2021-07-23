@@ -3,10 +3,6 @@ try:
 except:
     const = lambda x:x
 
-from ulogger import DEBUG
-
-__version__ = 'v0.1.1 alpha'
-
 GET     = "GET"
 POST    = "POST"
 HEAD    = "HEAD"

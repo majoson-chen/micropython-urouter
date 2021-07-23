@@ -1,15 +1,20 @@
-from ulogger import Logger
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+'''
+@File    :   request.py
+@Time    :   2021/07/23 17:06:57
+@Author  :   M-Jay
+@Contact :   m-jay-1376@qq.com
+
+Used to obtain connection information.
+'''
+
+import socket
+
 from ..consts import *
 from ..util import *
-
-try:
-    import usocket as socket
-except:
-    import socket
-
 from ..config import CONFIG
 from ..typeutil import headeritem, httphead
-from ..regexutil import COMP_HTTP_FIRSTLINE
 
 from gc import collect
 from .. import logger
@@ -24,6 +29,7 @@ class Header(dict):
     def __getitem__(self, key):
         if key not in self:
             # key not found.
+            item: headeritem
             for item in self.gen:
                 if item.key == key:
                     return item.value
@@ -52,7 +58,6 @@ class Request():
     _client: socket.socket
     _headers: dict
     _form: dict
-    _form_loaded: bool
 
     def init(
         self,
@@ -64,8 +69,7 @@ class Request():
         # comp http first line.
         self.host, self.port = addr
 
-        self._form = {}
-        self._form_loaded = False
+        self._form = None
 
         self.method, self.uri, self.http_version = head
 
@@ -73,13 +77,25 @@ class Request():
         self._headers = Header(self._hdgen)
         self.args = {}
         # Parsing uri to url
-        if "?" in self.uri:
+
+        pst = self.uri.find("?")
+        if pst > -1:
             # 解析参数
-            pst = self.uri.find("?")
-            self.args = load_form_data(self.uri[pst+1:])
+            self.args = load_form_data(self.uri[pst+1:], self.args)
             self.url = self.uri[:pst]
         else:
             self.url = self.uri
+
+    def _flush_header(self):
+        """
+        Flush header data.
+        """
+        try:
+            while True:
+                next(self._hdgen)
+        except StopIteration:
+            return  # flush over
+
 
     def _header_generate(self) -> str:
         """
@@ -99,7 +115,7 @@ class Request():
                     key: str = line[:pst]
                     # content = line[pst+2:]
                     # tuple is more memory-saved
-                    value = line[pst+2:]
+                    value = line[pst+2:].strip()
                     self._headers[key] = value
                     yield headeritem(key, value)
                 else:
@@ -138,7 +154,7 @@ class Request():
         # This is file 2
         # ------WebKitFormBoundaryOM7deWP2QaJYb9LE--
 
-        if self._form_loaded:
+        if self._form:
             return
 
         content_type = self.headers.get(
@@ -151,11 +167,7 @@ class Request():
                 please use application/x-www-form-urlencoded method.")
 
         # flush the header content.
-        try:
-            while True:
-                next(self._hdgen)
-        except:
-            ...
+        self._flush_header()
 
         # application/x-www-form-urlencoded content like this
         # username=123456&passwd=admin
@@ -176,11 +188,12 @@ class Request():
     @property
     def form(self) -> dict:
         # 惰性加载 form, 只要你不用, 我就不加载.
-        if not self._form_loaded:
+        if not self._form:
             self._load_form()
 
         return self._form
 
     @property
     def client(self) -> socket.socket:
+        self._flush_header()
         return self._client

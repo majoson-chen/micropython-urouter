@@ -21,7 +21,7 @@ def catch_chars(string: str) -> str:
     return string
 
 
-def load_form_data(data: str):
+def load_form_data(data: str, obj: dict):
     """
     传入一个bytes或者str, 将其解析成Python的dict对象, 用于解析HTML的表单数据
     例如:
@@ -34,7 +34,6 @@ def load_form_data(data: str):
     if type(data) == bytes:
         data = data.decode(CONFIG.charset)
 
-    obj = {}
     data: list = data.split("&")
 
     if not data == ['']:  # data 有数据时再进行解析
@@ -60,3 +59,22 @@ def dump_headers_generator(headers: dict):
             yield "%s%s%s%s" % (k, ": ", v, "\r\n")
 
     return
+
+
+def is_html(string: str) -> bool:
+    """
+    Check whether if it was a html type.
+    """
+
+    if string.find("<html>"):
+        return True
+    elif string.find("<p>"):
+        return True
+    elif string.find("<div>"):
+        return True
+    elif string.find("<span>"):
+        return True
+    elif string.find("<h1>"):
+        return True
+
+    return False

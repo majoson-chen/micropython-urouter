@@ -14,7 +14,26 @@ A lightweight HTTP request routing processing support library based on micropyth
 from .consts   import *
 from .router   import uRouter
 from .config   import CONFIG
+from .mimetypes import get as get_mime_type
 
+__version__ = 'v0.1.1 alpha'
 
+__all__ = (
+    uRouter, 
+    CONFIG,
 
+    __version__,
 
+    GET,
+    POST,
+    HEAD,
+    PUT,
+    OPINOS,
+    DELETE,
+    TRACE,
+    CONNECT,
+    NORMAL_MODE,
+    DYNAMIC_MODE,
+    
+    get_mime_type
+)
