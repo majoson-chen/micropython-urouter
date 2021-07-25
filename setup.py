@@ -1,32 +1,31 @@
 from setuptools import setup
+from urouter import __version__
+from os import path
+
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
 
 setup(
-    name='micropython-urouter',
-    version='0.1',
+    name="micropython-urouter",
+    version=__version__,
+
     packages=['urouter'],
     requirements=['micropython-ulogger'],
-    #package_dir = {'djangoforandroid': 'djangoforandroid'},
 
-    author='M-Jay',
-    author_email='m-jay-1376@qq.com',
-    maintainer='M-Jay',
-    maintainer_email='m-jay-1376@qq.com',
-
-    #url = 'http://www.pinguino.cc/',
-    url='http://urouter.m-jay.cn/',
-    download_url='https://github.com/Li-Lian1069/micropython-urouter/releases',
-
-    install_requires=[],
-
-    license='GNU LGPL v3',
-    description="A lightweight web server",
-    #    long_description = README,
-    keywords="micropython",
-
+    author="M-Jay",
+    author_email="m-jay-1376@qq.com",
+    description="A simple, lightweight, fast, and flexible WEB framework designed for embedded devices.",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    url="https://github.com/Li-Lian1069/micropython-urouter",
+    project_urls={
+        "Bug Tracker": "https://github.com/Li-Lian1069/micropython-urouter/issues",
+    },
     classifiers=[
-        'Environment :: Web Environment',
-        # 'Framework :: Django',
-        'Development Status :: 3 - Alpha'
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
     ],
+    keywords="micropython",
 
 )

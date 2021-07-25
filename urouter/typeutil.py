@@ -12,21 +12,21 @@ some custom type here.
 import collections
 
 ruleitem = collections.namedtuple(
-    "rule-item",
+    "rule_item",
     ("weight", "comper", "func", "methods", "url_vars")
 )
 
 routetask = collections.namedtuple(
-    "route-task",
+    "route_task",
     ("client", "addr", "http_head", "func", "url_vars")
 )
 
 httphead = collections.namedtuple(
-    "http-head",
+    "http_head",
     ("method", "uri", "version")
 )
 
 headeritem = collections.namedtuple(
-    "header-item",
+    "header_item",
     ("key", "value")
 )

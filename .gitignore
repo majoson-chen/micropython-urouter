@@ -137,3 +137,6 @@ test*
 boot.py
 www/
 iperf3.py
+
+cross/
+src/

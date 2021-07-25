@@ -62,7 +62,7 @@ class Request():
     def init(
         self,
         client: socket.socket,
-        addr: tuple(str, bytes),
+        addr: tuple,
         head: httphead
     ):
         self._client = client

@@ -1,6 +1,3 @@
 [submodule "urouter/.\\docs"]
 	path = urouter/.\\docs
 	url = https://github.com/Li-Lian1069/micropython-uRouter-docs
-[submodule "docs"]
-	path = docs
-	url = https://github.com/Li-Lian1069/micropython-uRouter-docs
