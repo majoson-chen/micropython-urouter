@@ -1,6 +1,6 @@
 # micropython-uRouter 开发文档
 
-![LOGO](https://github.com/Li-Lian1069/micropython-urouter-docs/staitcs/logo/facebook_cover_photo_2.png)
+![LOGO](https://github.com/Li-Lian1069/micropython-urouter-docs/tree/main/staitcs/logo/facebook_cover_photo_2.png)
 
 ## 阅读 [开发文档](https://urouter.m-jay.cn) 以获得更多信息
 
