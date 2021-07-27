@@ -18,6 +18,7 @@ try:
     from .router   import uRouter
     from .config   import CONFIG
     from .mimetypes import get as get_mime_type
+    from .logger import get as get_logger
 
 
 
@@ -38,7 +39,8 @@ try:
         NORMAL_MODE,
         DYNAMIC_MODE,
         
-        get_mime_type
+        get_mime_type,
+        get_logger
     )
 except:
     # for pip build

@@ -7,7 +7,7 @@ class _CONFIG:
         self._logger_level = INFO
         self.request_timeout = 7
         self.max_connections = 5
-        self.debug = True
+        self.debug = False
     
 
     def buff_size(self, app, value: int = None):

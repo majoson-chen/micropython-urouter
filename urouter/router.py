@@ -42,7 +42,7 @@ class uRouter():
     def __init__(
         self,
         host: str = "0.0.0.0",
-        port: str = "80",
+        port: int = 80,
         root_path: str = "/www",
         mode: int = NORMAL_MODE,
         keep_alive=False,

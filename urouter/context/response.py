@@ -124,7 +124,7 @@ class Response():
 
     def abort(
         self,
-        statu_code: str = 500,
+        statu_code: int = 500,
     ):
         self.mime_type = "text/html"
         self.statu_code = statu_code
@@ -133,7 +133,7 @@ class Response():
     def redirect(
         self,
         location: str,
-        statu_code: str = 302
+        statu_code: int = 302
     ):
         """
         Redirect the request.
@@ -189,7 +189,7 @@ class Response():
         self._stream_finish = True
 
 
-    def send_data(self, data: bytes) -> int:
+    def send_data(self, data: any) -> int:
         """
         Send the data if you enabled the stream-mode
         """
