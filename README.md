@@ -56,12 +56,13 @@ I am not expert at English, so i need someone who is good at English helping me 
 | 复杂程度       | 简单        | 复杂        |
 
 ## 如何使用?
-### 通过pypi
+### 通过pypi安装
 ```python
 # on mpy repl.
 import upip
 
 upip.install('micropython-uRouter')
+upip.install('micropython-ulogger')
 ```
 
 ### 手动安装(推荐)
@@ -70,6 +71,7 @@ upip.install('micropython-uRouter')
 步骤:  
 1. 先去本项目的 [release](https://github.com/Li-Lian1069/micropython-urouter/releases) 页面下载一个最新版本的打包版本
 2. 将下载到的文件上传到开发版的 `/lib` 目录中. (可以使用 `thonny` ide)
+3. 安装类似的步骤安装本框架的依赖库: https://github.com/Li-Lian1069/micropython-ulogger
 
 ### 快速开始
 我们先来建立一个最简单的处理路由:
