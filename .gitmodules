@@ -1,0 +1,4 @@
+[submodule "docs"]
+	path = docs
+	url = https://github.com/Li-Lian1069/micropython-urouter-docs
+	branch = v0.1-alpha-simplified-chinese
