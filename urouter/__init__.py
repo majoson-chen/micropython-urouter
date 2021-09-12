@@ -13,35 +13,32 @@ A lightweight HTTP request routing processing support library based on micropyth
 
 __version__ = 'v0.1.1 alpha'
 
-try:
-    from .consts   import *
-    from .router   import uRouter
-    from .config   import CONFIG
-    from .mimetypes import get as get_mime_type
-    from .logger import get as get_logger
+
+from .consts   import *
+from .router   import uRouter
+from .config   import CONFIG
+from .mimetypes import get as get_mime_type
+from .logger import get as get_logger
 
 
 
-    __all__ = (
-        uRouter, 
-        CONFIG,
+__all__ = (
+    uRouter, 
+    CONFIG,
 
-        __version__,
+    __version__,
 
-        GET,
-        POST,
-        HEAD,
-        PUT,
-        OPINOS,
-        DELETE,
-        TRACE,
-        CONNECT,
-        NORMAL_MODE,
-        DYNAMIC_MODE,
-        
-        get_mime_type,
-        get_logger
-    )
-except:
-    # for pip build
-    ...
+    GET,
+    POST,
+    HEAD,
+    PUT,
+    OPINOS,
+    DELETE,
+    TRACE,
+    CONNECT,
+    NORMAL_MODE,
+    DYNAMIC_MODE,
+    
+    get_mime_type,
+    get_logger
+)

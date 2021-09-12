@@ -25,7 +25,7 @@ def load_form_data(data: str, obj: dict):
     """
     传入一个bytes或者str, 将其解析成Python的dict对象, 用于解析HTML的表单数据
     例如:
-    load_form_data ("user_name=abc&user_passwd=123456")
+    load_form_data("user_name=abc&user_passwd=123456")
     -> {
         "user_name"   : "abc",
         "user_passwd" : "123456"
