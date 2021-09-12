@@ -2,6 +2,8 @@
 
 ![LOGO](/cover.png)
 
+**注意：** 本项目目前处于缓慢或者暂停更新状态，因为作者高三了，欢迎志同道合的朋友提交 `pull request` 。 同时，我需要有朋友帮我翻译和完善下文档，有意者可以提交issue或者pr哦~
+
 ## 阅读 [开发文档](https://urouter.m-jay.cn) 以获得更多信息
 
 ## 注意: 本框架目前正处于预览开发阶段, 如果在使用过程中遇到任何问题, 请前往提交 [issue](https://github.com/Li-Lian1069/micropython-urouter/issue)
