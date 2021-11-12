@@ -1,6 +1,14 @@
 from setuptools import setup
-from urouter import __version__
-from os import path
+from pathlib import Path
+
+__version__: str
+# get version
+with (Path('.') / 'urouter' / '__init__.py').open('r') as fp:
+    while True:
+        line = fp.readline()
+        if line.startswith("__version__"):
+            exec(line)
+            break
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
@@ -10,16 +18,18 @@ setup(
     version=__version__,
 
     packages=['urouter'],
-    requirements=['micropython-ulogger'],
+    install_requires=['micropython-ulogger'],
+    # requirements=['micropython-ulogger'],
+    include_package_data=True,
 
-    author="M-Jay",
-    author_email="m-jay-1376@qq.com",
+    author="Youkii-Chen",
+    author_email="youkii-chen@qq.com",
     description="A simple, lightweight, fast, and flexible WEB framework designed for embedded devices.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/Li-Lian1069/micropython-urouter",
+    url="https://github.com/Youkii-Chen/micropython-urouter",
     project_urls={
-        "Bug Tracker": "https://github.com/Li-Lian1069/micropython-urouter/issues",
+        "Bug Tracker": "https://github.com/Youkii-Chen/micropython-urouter/issues",
     },
     classifiers=[
         "Programming Language :: Python :: 3",
