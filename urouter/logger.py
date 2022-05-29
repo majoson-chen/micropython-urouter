@@ -13,8 +13,9 @@ from .config import CONFIG
 
 handler = ulogger.Handler(CONFIG.logger_level)
 
+
 def get(name: str) -> ulogger.Logger:
     return ulogger.Logger(
         name=name,
-        handlers=(handler, )
+        handlers=(handler,)
     )
