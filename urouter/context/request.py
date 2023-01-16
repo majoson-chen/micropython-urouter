@@ -15,6 +15,7 @@ from ..consts import *
 from ..util import *
 from ..config import CONFIG
 from ..typeutil import headeritem, httphead
+from json import loads as json_loads
 
 from gc import collect
 from .. import logger
@@ -128,7 +129,7 @@ class Request():
     def headers(self) -> dict:
         return self._headers
 
-    def _load_form(self):
+    def _load_form(self, buffsize=4096):
         # Content-Type: application/x-www-form-urlencoded
         # file1=EpicGamesLauncher.exe&file2=api-ms-win-core-heap-l1-1-0.dll
 
@@ -169,21 +170,26 @@ class Request():
         # flush the header content.
         self._flush_header()
 
-        # application/x-www-form-urlencoded content like this
-        # username=123456&passwd=admin
+        content = self._client.recv(buffsize).decode(CONFIG.charset)
 
-        # data = self._client.recv()
-        # content = data.decode(CONFIG.charset)
-        # items = content.split("&")
-        # try to recv all data.
-        items: list = self._client.recv()\
-            .decode(CONFIG.charset)\
-            .split("&")
+        if "application/x-www-form-urlencoded" in content_type:
+            # application/x-www-form-urlencoded content like this
+            # username=123456&passwd=admin
+
+            # data = self._client.recv()
+            # content = data.decode(CONFIG.charset)
+            # items = content.split("&")
+            # try to recv all data.
+            items: list = content.split("&")
+
+            for item in items:
+                k, v = item.split("=")
+                self._form[k] = v
+
+        elif "application/json" in content_type:
+            self._form = json_loads()
+
         collect()
-
-        for item in items:
-            k, v = item.split("=")
-            self._form[k] = v
 
     @property
     def form(self) -> dict:

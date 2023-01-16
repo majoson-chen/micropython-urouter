@@ -11,7 +11,7 @@ A lightweight HTTP request routing processing support library based on micropyth
  The previous name was [micro-route](https://github.com/Li-Lian1069/micro_route)
 """
 
-__version__ = 'v0.1.1 alpha'
+__version__ = 'v0.1.2 alpha'
 
 
 from .consts   import *
