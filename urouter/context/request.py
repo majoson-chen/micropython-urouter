@@ -69,7 +69,9 @@ class Request():
         # comp http first line.
         self.host, self.port = addr
 
-        self._form = None
+        self._form = {}
+        
+        self.buffsize = None
 
         self.method, self.uri, self.http_version = head
 
@@ -176,7 +178,7 @@ class Request():
         # content = data.decode(CONFIG.charset)
         # items = content.split("&")
         # try to recv all data.
-        items: list = self._client.recv()\
+        items: list = self._client.recv(self.buffsize)\
             .decode(CONFIG.charset)\
             .split("&")
         collect()
